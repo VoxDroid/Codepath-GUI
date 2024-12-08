@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en" class="dark-mode">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codepath AI Assistant</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --background-color: #f0f2f5;
+            --text-color: #2c3e50;
+            --card-bg-color: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --hover-color: #f39c12;
+            --message-user-bg: #3498db;
+            --message-bot-bg: #f8f9fa;
+        }
+
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--accent-color);
+            border-radius: 8px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 8px;
+            border: 4px solid var(--accent-color);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .dark-mode {
+            --primary-color: #2980b9;
+            --secondary-color: #3498db;
+            --background-color: #2c3e50;
+            --text-color: #ecf0f1;
+            --card-bg-color: #34495e;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --hover-color: #e67e22;
+            --message-user-bg: #2980b9;
+            --message-bot-bg: #445566;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--background-color) 0%, var(--card-bg-color) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+
+        .chat-app {
+            width: 100%;
+            max-width: 1000px;
+            height: 90vh;
+            background: var(--card-bg-color);
+            border-radius: 20px;
+            box-shadow: 0 12px 24px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .model-selection-toggle {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0 0 15px 15px;
+            padding: 8px 20px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .model-selection-toggle:hover {
+            background: var(--secondary-color);
+        }
+
+        .model-selection-panel {
+            position: absolute;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            background: var(--card-bg-color);
+            padding: 20px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            transition: top 0.3s ease;
+            z-index: 999;
+        }
+
+        .model-selection-panel.active {
+            top: 0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-input, .form-select {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            font-size: 14px;
+            background: var(--card-bg-color);
+            color: var(--text-color);
+        }
+
+        .form-button {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .form-button:hover {
+            background: var(--secondary-color);
+        }
+
+        .chat-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .header-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 80%;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.3s forwards;
+        }
+
+        .message-container:hover .message-actions {
+            display: flex;
+            opacity: 1;
+        }
+
+        .message-container.user-container {
+            flex-direction: row-reverse;
+            margin-left: auto;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 15px;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            position: relative;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: var(--message-user-bg);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background: var(--message-bot-bg);
+            color: var(--text-color);
+            border-bottom-left-radius: 5px;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: var(--card-bg-color);
+            border-top: 1px solid var(--primary-color);
+            position: relative;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: var(--background-color);
+            border-radius: 25px;
+            padding: 5px;
+        }
+
+        #user-input {
+            flex: 1;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 20px;
+            background: transparent;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        #user-input:focus {
+            outline: none;
+        }
+
+        #send-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #send-button:hover {
+            transform: scale(1.05);
+            background: var(--secondary-color);
+        }
+
+        .keyboard-shortcuts {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: var(--text-color);
+            white-space: nowrap;
+        }
+
+        .message-actions {
+            display: none;
+            gap: 5px;
+            margin-top: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .delete-message, .regenerate-response{
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 14px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .delete-message:hover, .regenerate-response:hover {
+            opacity: 0.7;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            background: var(--message-bot-bg);
+            border-radius: 15px;
+            width: fit-content;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: typingAnimation 1s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingAnimation {
+            50% { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .background-decoration {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .background-decoration::before,
+        .background-decoration::after {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+
+        .background-decoration::before {
+            background: var(--primary-color);
+            top: -100px;
+            right: -100px;
+        }
+
+        .background-decoration::after {
+            background: var(--secondary-color);
+            bottom: -100px;
+            left: -100px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg-color);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            color: var(--text-color);
+            animation: slideIn 0.3s;
+        }
+
+        .modal-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .modal-button.confirm {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .modal-button.cancel {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .chat-app {
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .message-container {
+                max-width: 90%;
+            }
+
+            .background-decoration {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-decoration"></div>
+    <div class="chat-app">
+        <button class="model-selection-toggle" onclick="toggleModelPanel()">
+            <i class="fas fa-cog"></i> Model Settings
+        </button>
+        
+        <div class="model-selection-panel" id="modelPanel">
+            <div class="input-group">
+                <input type="text" id="repo-name" value="iZELX1/CodePath" placeholder="Enter Hugging Face Repository" class="form-input">
+                <button id="load-commits" class="form-button">
+                    <i class="fas fa-sync-alt"></i> Load Commits
+                </button>
+            </div>
+            <div class="input-group">
+                <select id="commit-select" style="display: none;" class="form-select"></select>
+                <button id="load-model" style="display: none;" class="form-button">
+                    <i class="fas fa-download"></i> Load Model
+                </button>
+            </div>
+            <div id="error-message" class="error-message"></div>
+        </div>
+
+        <div class="chat-header">
+            <div class="header-title">
+                <i class="fas fa-robot"></i>
+                <span>Codepath AI Assistant</span>
+            </div>
+            <div class="header-actions">
+                <button class="header-button" onclick="toggleDarkMode()">
+                    <i class="fas fa-moon"></i> Toggle Dark Mode
+                </button>
+                <button class="header-button" onclick="showResetModal()">
+                    <i class="fas fa-redo"></i> Reset Chat
+                </button>
+            </div>
+        </div>
+
+        <div id="chat-container"></div>
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <input type="text" id="user-input" placeholder="Type your message..." disabled>
+                <button id="send-button" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="keyboard-shortcuts">
+                Press Enter to send, Shift+Enter for new line
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <p>Are you sure you want to delete this message? (It will delete all messages and responses generated after this.)</p>
+            <div class="modal-buttons">
+                <button class="modal-button confirm" onclick="confirmDelete()">Yes</button>
+                <button class="modal-button cancel" onclick="closeModal('deleteModal')">No</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetModal" class="modal">
+        <div class="modal-content">
+            <p>Are you sure you want to reset the chat?</p>
+            <div class="modal-buttons">
+                <button class="modal-button confirm" onclick="confirmReset()">Yes</button>
+                <button class="modal-button cancel" onclick="closeModal('resetModal')">No</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="regenerateModal" class="modal">
+        <div class="modal-content">
+            <p>Are you sure you want to regenerate the response for this input? (It will delete all messages and responses generated after this.)</p>
+            <div class="modal-buttons">
+                <button class="modal-button confirm" onclick="confirmRegenerate()">Yes</button>
+                <button class="modal-button cancel" onclick="closeModal('regenerateModal')">No</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let modelLoaded = false;
+        let typingTimer;
+        let modelPanelVisible = false;
+        let currentMessageToDelete = null;
+        let currentMessageToRegenerate = null;
+
+        function toggleModelPanel() {
+            const panel = document.getElementById('modelPanel');
+            modelPanelVisible = !modelPanelVisible;
+            panel.classList.toggle('active');
+        }
+
+        function showError(message) {
+            const errorElement = $('#error-message');
+            errorElement.text(message).addClass('show');
+            setTimeout(() => errorElement.removeClass('show'), 5000);
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                $('button').prop('disabled', true).addClass('loading');
+            } else {
+                $('button').prop('disabled', false).removeClass('loading');
+            }
+        }
+
+        function showDeleteModal(messageId) {
+            currentMessageToDelete = messageId;
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        function showResetModal() {
+            document.getElementById('resetModal').style.display = 'block';
+        }
+
+        function showRegenerateModal(messageId) {
+            currentMessageToRegenerate = messageId;
+            document.getElementById('regenerateModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function confirmDelete() {
+            if (currentMessageToDelete) {
+                deleteMessage(currentMessageToDelete);
+                closeModal('deleteModal');
+                currentMessageToDelete = null;
+            }
+        }
+
+        function confirmReset() {
+            resetConversation();
+            closeModal('resetModal');
+        }
+
+        function confirmRegenerate() {
+            if (currentMessageToRegenerate) {
+                regenerateResponse(currentMessageToRegenerate);
+                closeModal('regenerateModal');
+                currentMessageToRegenerate = null;
+            }
+        }
+
+        function deleteMessage(messageId) {
+            $.post('/delete_message', { message_id: messageId })
+                .done(function(data) {
+                    if (data.success) {
+                        const messageElement = $(`#${messageId}`);
+                        // Remove the current message and all subsequent messages
+                        messageElement.nextAll('.message-container').remove();
+                        messageElement.remove();
+                    } else {
+                        showError('Error deleting message: ' + data.error);
+                    }
+                })
+                .fail(function(jqXHR) {
+                    showError('Error deleting message: ' + (jqXHR.responseJSON?.error || 'Unknown error'));
+                });
+        }
+
+        function resetConversation() {
+            messageCounter = 0; // Reset the message counter
+            $('#chat-container').empty();
+            $.post('/reset_chat')
+                .done(function(data) {
+                    appendMessage('Codepath', 'Chat history has been reset. How can I help you?');
+                    currentMessageToRegenerate = null; // Reset the regenerate message ID
+                })
+                .fail(function(jqXHR) {
+                    showError('Error resetting chat: ' + (jqXHR.responseJSON?.error || 'Unknown error'));
+                });
+        }
+
+        function regenerateResponse(messageId) {
+            const messageElement = $(`#${messageId}`);
+            const userInput = messageElement.find('.message').text();
+            
+            // Remove all messages after the current message
+            messageElement.nextAll('.message-container').remove();
+            
+            // Show typing indicator after the user message
+            showTypingIndicator();
+        
+            $.post('/regenerate_response', { message_id: messageId, user_input: userInput })
+                .done(function(data) {
+                    removeTypingIndicator();
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        appendMessage('Codepath', data.response);
+                    }
+                })
+                .fail(function(jqXHR) {
+                    removeTypingIndicator();
+                    showError('Error regenerating response: ' + (jqXHR.responseJSON?.error || 'Unknown error'));
+                })
+                .always(function() {
+                    // Reset the currentMessageToRegenerate
+                    currentMessageToRegenerate = null;
+                });
+        }
+
+        $('#load-commits').click(function() {
+            const repoName = $('#repo-name').val();
+            if (!repoName.includes('/')) {
+                showError('Repository name must be in format "username/repository"');
+                return;
+            }
+
+            setLoading(true);
+            $.post('/get_commits', {repo_name: repoName})
+                .done(function(data) {
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        const select = $('#commit-select');
+                        select.empty();
+                        data.commits.forEach(function(commit) {
+                            select.append($('<option></option>')
+                                .attr('value', commit.hash)
+                                .text(`${commit.hash.substring(0, 7)} - ${commit.title}`));
+                        });
+                        select.show();
+                        $('#load-model').show();
+                    }
+                })
+                .fail(function(jqXHR) {
+                    showError('Error loading commits: ' + (jqXHR.responseJSON?.error || 'Unknown error'));
+                })
+                .always(function() {
+                    setLoading(false);
+                });
+        });
+
+        $('#load-model').click(function() {
+            const repoName = $('#repo-name').val();
+            const commitHash = $('#commit-select').val();
+            
+            setLoading(true);
+            $.post('/load_model', {
+                repo_name: repoName,
+                commit_hash: commitHash
+            })
+                .done(function(data) {
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        modelLoaded = true;
+                        $('#user-input').prop('disabled', false);
+                        $('#send-button').prop('disabled', false);
+                        appendMessage('Codepath', 'Hello! How can I assist you today?');
+                        localStorage.setItem('loadedModel', JSON.stringify({ repoName, commitHash }));
+                        toggleModelPanel(); // Hide the model panel after successful load
+                    }
+                })
+                .fail(function(jqXHR) {
+                    showError('Error loading model: ' + (jqXHR.responseJSON?.error || 'Unknown error'));
+                })
+                .always(function() {
+                    setLoading(false);
+                });
+        });
+
+        let messageCounter = 0;
+
+        function appendMessage(sender, message) {
+            const messageId = `message-${++messageCounter}`;
+            const messageClass = sender === 'You' ? 'user-message' : 'bot-message';
+            const containerClass = sender === 'You' ? 'user-container' : '';
+            const avatarSrc = sender === 'You' ? 'https://i.pravatar.cc/150?img=32' : 'https://i.pravatar.cc/150?img=7';
+            
+            const actionButtons = `
+                <div class="message-actions">
+                    ${sender === 'You' ? `
+                        <button class="delete-message" onclick="showDeleteModal('${messageId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="regenerate-response" onclick="showRegenerateModal('${messageId}')">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+
+            const messageHtml = `
+                <div class="message-container ${containerClass}" id="${messageId}">
+                    <img src="${avatarSrc}" alt="${sender} avatar" class="avatar">
+                    <div>
+                        <div class="message ${messageClass}">
+                            ${message}
+                        </div>
+                        ${actionButtons}
+                    </div>
+                </div>
+            `;
+            
+            $('#chat-container').append(messageHtml);
+            $('#chat-container').scrollTop($('#chat-container')[0].scrollHeight);
+        }
+
+        function showTypingIndicator() {
+            const typingHtml = `
+                <div class="message-container typing-container">
+                    <img src="https://i.pravatar.cc/150?img=7" alt="Bot avatar" class="avatar">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            $('#chat-container').append(typingHtml);
+            $('#chat-container').scrollTop($('#chat-container')[0].scrollHeight);
+        }
+
+        function removeTypingIndicator() {
+            $('.typing-container').remove();
+        }
+
+        function sendMessage() {
+            if (!modelLoaded) {
+                showError("Please load a model first.");
+                return;
+            }
+
+            const userInput = $('#user-input').val().trim();
+            if (userInput === '') return;
+
+            $('#user-input').val('').prop('disabled', true);
+            $('#send-button').prop('disabled', true);
+            appendMessage('You', userInput);
+
+            showTypingIndicator();
+
+            $.post('/chat', {user_input: userInput})
+                .done(function(data) {
+                    removeTypingIndicator();
+                    if (data.error) {
+                        appendMessage('Error', data.error);
+                    } else {
+                        appendMessage('Codepath', data.response);
+                        if (data.end_chat) {
+                            modelLoaded = false;
+                            $('#user-input').prop('disabled', true);
+                            $('#send-button').prop('disabled', true);
+                        }
+                    }
+                })
+                .fail(function(jqXHR) {
+                    removeTypingIndicator();
+                    appendMessage('Error', jqXHR.responseJSON?.error || 'Unknown error');
+                })
+                .always(function() {
+                    $('#user-input').prop('disabled', false).focus();
+                    $('#send-button').prop('disabled', false);
+                });
+        }
+
+        $('#send-button').click(sendMessage);
+
+        $('#user-input').on('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark-mode');
+        }
+
+        // Load previously loaded model on page refresh
+        const loadedModel = JSON.parse(localStorage.getItem('loadedModel'));
+        if (loadedModel) {
+            $('#repo-name').val(loadedModel.repoName);
+            $('#load-commits').click();
+            setTimeout(() => {
+                $('#commit-select').val(loadedModel.commitHash);
+                $('#load-model').click();
+            }, 1000);
+        }
+
+        // Automatically load commits on page load
+        $(document).ready(function() {
+            $('#load-commits').click();
+        });
+    </script>
+</body>
+</html>
