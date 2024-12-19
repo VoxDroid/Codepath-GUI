@@ -1,7 +1,7 @@
-Flask==2.1.0
-huggingface-hub==0.16.4
-transformers==4.30.2
-torch==1.13.1
-numpy==1.23.5
-gensim==4.3.1
-python-dotenv==1.0.0
+Flask
+huggingface-hub
+transformers
+torch
+numpy
+gensim
+python-dotenv
