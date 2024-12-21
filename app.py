@@ -35,6 +35,7 @@ else:
 class AdvancedChatbotManager:
     def __init__(self, model, tokenizer, history_file: str = "chat_history.json"):
         self.model = model
+        self.repo_name = request.form['repo_name']
         self.tokenizer = tokenizer
         self.model.config.pad_token_id = self.model.config.eos_token_id
         self.backup_folder = "ch_backup"
@@ -130,24 +131,33 @@ class AdvancedChatbotManager:
             return False
         return True
 
-    def _check_relevance(self, response: str, user_input: str) -> bool:
-        words1 = set(user_input.lower().split())
-        words2 = set(response.lower().split())
+    # def _check_relevance(self, response: str, user_input: str) -> bool:
+    #     words1 = set(user_input.lower().split())
+    #     words2 = set(response.lower().split())
+    #
+    #     intersection = len(words1.intersection(words2))
+    #     min_overlap = 1 if len(words1) < 3 else 2
+    #
+    #     return intersection >= min_overlap
 
-        intersection = len(words1.intersection(words2))
-        min_overlap = 1 if len(words1) < 3 else 2
+    def _check_relevance(self, user_query, chatbot_response, threshold=0.55):
+        embeddings = HuggingFaceEmbeddings()
 
-        return intersection >= min_overlap
+        query_embedding = embeddings.embed_query(user_query)
+        response_embedding = embeddings.embed_query(chatbot_response)
+        similarity = cosine_similarity(
+            [query_embedding], [response_embedding]
+        )[0][0]
+        return similarity >= threshold
 
     def generate_response(self, user_input: str, history: List[Dict], max_attempts: int = 5) -> str:
         history_text = self._format_history(history)
         # input_text = f"{history_text}\nHuman: {user_input}\nAI:"
-
         for attempt in range(max_attempts):
             try:
 
                 hf = HuggingFacePipeline.from_model_id(
-                    model_id="iZELX1/CodePath",
+                    model_id=self.repo_name,
                     task="text-generation",
                     pipeline_kwargs={
                         "max_new_tokens": 150,
@@ -162,6 +172,18 @@ class AdvancedChatbotManager:
                 template = "{history_text}\nHuman: {user_input}\nAI:"
                 prompt = PromptTemplate.from_template(template)
                 chain = prompt | hf.bind(skip_prompt=True)
+                input_data = {
+                    "history_text": history_text,
+                    "user_input": user_input,
+                    "model_kwargs": {
+                        "tokenizer_params": {
+                            "return_tensors": "pt",
+                            "padding": "max_length",
+                            "max_length": 512,
+                            "truncation": True
+                        }
+                    }
+                }
 
                 # inputs = self.tokenizer.encode_plus(
                 #     input_text,
@@ -186,10 +208,7 @@ class AdvancedChatbotManager:
                 #
                 # response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
                 # response = response.split("AI:")[-1].strip()
-                response = chain.invoke({
-                    "history_text": history_text,
-                    "user_input": user_input,
-                                        })
+                response = chain.invoke(input_data)
 
                 if (self.check_response_quality(response, user_input) and
                     not self.detect_repetition(response, history)):
@@ -205,11 +224,11 @@ class AdvancedChatbotManager:
 
     def _generate_fallback_response(self, user_input: str, history: List[Dict]) -> str:
         fallback_responses = [
-            "I'm dumb, I apologize, but I'm having trouble understanding. Could you please rephrase your message?",
-            # "I'm not sure I have enough information to answer that. Can you provide more context?",
-            # "That's an interesting question. To better assist you, could you clarify what specific aspect you're most interested in?",
-            # "I want to make sure I give you the most accurate information. Could you break down your message into smaller parts?",
-            # "I'm still learning and evolving. Could you try putting your message in a different way?"
+            "I apologize, but I'm having trouble understanding. Could you please rephrase your message?",
+            "I'm not sure I have enough information to answer that. Can you provide more context?",
+            "That's an interesting question. To better assist you, could you clarify what specific aspect you're most interested in?",
+            "I want to make sure I give you the most accurate information. Could you break down your message into smaller parts?",
+            "I'm still learning and evolving. Could you try putting your message in a different way?"
         ]
         return np.random.choice(fallback_responses)
 
