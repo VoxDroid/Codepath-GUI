@@ -175,14 +175,6 @@ class AdvancedChatbotManager:
                 input_data = {
                     "history_text": history_text,
                     "user_input": user_input,
-                    "model_kwargs": {
-                        "tokenizer_params": {
-                            "return_tensors": "pt",
-                            "padding": "max_length",
-                            "max_length": 512,
-                            "truncation": True
-                        }
-                    }
                 }
 
                 # inputs = self.tokenizer.encode_plus(
@@ -208,7 +200,7 @@ class AdvancedChatbotManager:
                 #
                 # response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
                 # response = response.split("AI:")[-1].strip()
-                response = chain.invoke(input_data)
+                response = chain.invoke(input_data).strip()
 
                 if (self.check_response_quality(response, user_input) and
                     not self.detect_repetition(response, history)):
