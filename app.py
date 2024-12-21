@@ -12,6 +12,8 @@ from collections import Counter
 from gensim import corpora
 from gensim.models import LdaModel
 from dotenv import load_dotenv
+from langchain_huggingface import HuggingFaceEmbeddings
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Load environment variables
 load_dotenv()
@@ -123,18 +125,29 @@ class AdvancedChatbotManager:
             return False
         if len(set(response.split())) < len(response.split()) * 0.4:
             return False
-        if not self._check_relevance(response, user_input):
+        if not self._check_relevance(user_input, response):
             return False
         return True
 
-    def _check_relevance(self, response: str, user_input: str) -> bool:
-        words1 = set(user_input.lower().split())
-        words2 = set(response.lower().split())
+    # def _check_relevance(self, response: str, user_input: str) -> bool:
+    #     words1 = set(user_input.lower().split())
+    #     words2 = set(response.lower().split())
+    #
+    #     intersection = len(words1.intersection(words2))
+    #     min_overlap = 1 if len(words1) < 3 else 2
+    #
+    #     return intersection >= min_overlap
 
-        intersection = len(words1.intersection(words2))
-        min_overlap = 1 if len(words1) < 3 else 2
+    def _check_relevance(self, user_query, chatbot_response, threshold=0.6):
+        embeddings = HuggingFaceEmbeddings()
 
-        return intersection >= min_overlap
+        query_embedding = embeddings.embed_query(user_query)
+        response_embedding = embeddings.embed_query(chatbot_response)
+        similarity = cosine_similarity(
+            [query_embedding], [response_embedding]
+        )[0][0]
+        return similarity >= threshold
+
 
     def generate_response(self, user_input: str, history: List[Dict], max_attempts: int = 5) -> str:
         history_text = self._format_history(history)
@@ -180,11 +193,11 @@ class AdvancedChatbotManager:
 
     def _generate_fallback_response(self, user_input: str, history: List[Dict]) -> str:
         fallback_responses = [
-            "I apologize, but I'm having trouble understanding. Could you please rephrase your message?",
-            "I'm not sure I have enough information to answer that. Can you provide more context?",
-            "That's an interesting question. To better assist you, could you clarify what specific aspect you're most interested in?",
-            "I want to make sure I give you the most accurate information. Could you break down your message into smaller parts?",
-            "I'm still learning and evolving. Could you try putting your message in a different way?"
+            "I'm dumb, I apologize, but I'm having trouble understanding. Could you please rephrase your message?",
+            # "I'm not sure I have enough information to answer that. Can you provide more context?",
+            # "That's an interesting question. To better assist you, could you clarify what specific aspect you're most interested in?",
+            # "I want to make sure I give you the most accurate information. Could you break down your message into smaller parts?",
+            # "I'm still learning and evolving. Could you try putting your message in a different way?"
         ]
         return np.random.choice(fallback_responses)
 
