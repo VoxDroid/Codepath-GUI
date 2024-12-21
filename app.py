@@ -12,8 +12,9 @@ from collections import Counter
 from gensim import corpora
 from gensim.models import LdaModel
 from dotenv import load_dotenv
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings, HuggingFacePipeline
 from sklearn.metrics.pairwise import cosine_similarity
+from langchain_core.prompts import PromptTemplate
 
 # Load environment variables
 load_dotenv()
@@ -129,55 +130,66 @@ class AdvancedChatbotManager:
             return False
         return True
 
-    # def _check_relevance(self, response: str, user_input: str) -> bool:
-    #     words1 = set(user_input.lower().split())
-    #     words2 = set(response.lower().split())
-    #
-    #     intersection = len(words1.intersection(words2))
-    #     min_overlap = 1 if len(words1) < 3 else 2
-    #
-    #     return intersection >= min_overlap
+    def _check_relevance(self, response: str, user_input: str) -> bool:
+        words1 = set(user_input.lower().split())
+        words2 = set(response.lower().split())
 
-    def _check_relevance(self, user_query, chatbot_response, threshold=0.6):
-        embeddings = HuggingFaceEmbeddings()
+        intersection = len(words1.intersection(words2))
+        min_overlap = 1 if len(words1) < 3 else 2
 
-        query_embedding = embeddings.embed_query(user_query)
-        response_embedding = embeddings.embed_query(chatbot_response)
-        similarity = cosine_similarity(
-            [query_embedding], [response_embedding]
-        )[0][0]
-        return similarity >= threshold
-
+        return intersection >= min_overlap
 
     def generate_response(self, user_input: str, history: List[Dict], max_attempts: int = 5) -> str:
         history_text = self._format_history(history)
-        input_text = f"{history_text}\nHuman: {user_input}\nAI:"
+        # input_text = f"{history_text}\nHuman: {user_input}\nAI:"
 
         for attempt in range(max_attempts):
             try:
-                inputs = self.tokenizer.encode_plus(
-                    input_text,
-                    return_tensors="pt",
-                    padding='max_length',
-                    max_length=512,
-                    truncation=True
-                ).to(self.device)
 
-                with torch.no_grad():
-                    outputs = self.model.generate(
-                        inputs['input_ids'],
-                        attention_mask=inputs['attention_mask'],
-                        max_new_tokens=150,
-                        num_return_sequences=1,
-                        no_repeat_ngram_size=3,
-                        top_k=50,
-                        top_p=0.92,
-                        temperature=self._dynamic_temperature(attempt),
-                        do_sample=True
-                    )
+                hf = HuggingFacePipeline.from_model_id(
+                    model_id="iZELX1/CodePath",
+                    task="text-generation",
+                    pipeline_kwargs={
+                        "max_new_tokens": 150,
+                        "num_return_sequences": 1,
+                        "no_repeat_ngram_size": 3,
+                        "top_k": 50,
+                        "top_p": 0.92,
+                        "temperature": self._dynamic_temperature(attempt),
+                        "do_sample":True
+                    },
+                )
+                template = "{history_text}\nHuman: {user_input}\nAI:"
+                prompt = PromptTemplate.from_template(template)
+                chain = prompt | hf.bind(skip_prompt=True)
 
-                response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-                response = response.split("AI:")[-1].strip()
+                # inputs = self.tokenizer.encode_plus(
+                #     input_text,
+                #     return_tensors="pt",
+                #     padding='max_length',
+                #     max_length=512,
+                #     truncation=True
+                # ).to(self.device)
+                #
+                # with torch.no_grad():
+                #     outputs = self.model.generate(
+                #         inputs['input_ids'],
+                #         attention_mask=inputs['attention_mask'],
+                #         max_new_tokens=150,
+                #         num_return_sequences=1,
+                #         no_repeat_ngram_size=3,
+                #         top_k=50,
+                #         top_p=0.92,
+                #         temperature=self._dynamic_temperature(attempt),
+                #         do_sample=True
+                #     )
+                #
+                # response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+                # response = response.split("AI:")[-1].strip()
+                response = chain.invoke({
+                    "history_text": history_text,
+                    "user_input": user_input,
+                                        })
 
                 if (self.check_response_quality(response, user_input) and
                     not self.detect_repetition(response, history)):
