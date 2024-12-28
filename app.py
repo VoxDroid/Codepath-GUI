@@ -216,11 +216,11 @@ class AdvancedChatbotManager:
 
     def _generate_fallback_response(self, user_input: str, history: List[Dict]) -> str:
         fallback_responses = [
-            "I apologize, but I'm having trouble understanding. Could you please rephrase your message?",
-            "I'm not sure I have enough information to answer that. Can you provide more context?",
-            "That's an interesting question. To better assist you, could you clarify what specific aspect you're most interested in?",
-            "I want to make sure I give you the most accurate information. Could you break down your message into smaller parts?",
-            "I'm still learning and evolving. Could you try putting your message in a different way?"
+            "I apologize, but I'm having trouble understanding. Could you please rephrase your message? It could be that it's not part of my training data.",
+            "I'm not sure I have enough information to answer that. Can you provide more context? It could be that it's not part of my training data.",
+            "That's an interesting question. To better assist you, could you clarify what specific aspect you're most interested in? I think it could be that it's not part of my training data.",
+            "I want to make sure I give you the most accurate information. Could you break down your message into smaller parts? It could be that it's not part of my training data.",
+            "I'm still learning and evolving. Could you try putting your message in a different way? It could be that it's not part of my training data."
         ]
         return np.random.choice(fallback_responses)
 
