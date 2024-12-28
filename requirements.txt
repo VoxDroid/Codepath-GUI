@@ -1,7 +1,10 @@
-Flask==2.1.0
-huggingface-hub==0.16.4
-transformers==4.30.2
-torch==1.13.1
-numpy==1.23.5
-gensim==4.3.1
-python-dotenv==1.0.0
+chardet==5.2.0
+Flask==3.1.0
+gensim==4.3.3
+huggingface_hub==0.27.0
+langchain_huggingface==0.1.2
+numpy==2.2.0
+python-dotenv==1.0.1
+scikit_learn==1.6.0
+torch==2.5.1
+transformers==4.47.1

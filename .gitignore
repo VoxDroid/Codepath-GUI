@@ -1,0 +1,5 @@
+.vscode
+__pycache__/
+cpenv/
+ch_backup/
+chat_history.json
