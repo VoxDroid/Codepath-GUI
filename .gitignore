@@ -3,3 +3,4 @@ __pycache__/
 cpenv/
 ch_backup/
 chat_history.json
+.env
